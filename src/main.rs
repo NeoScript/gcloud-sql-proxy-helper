@@ -99,7 +99,19 @@ fn start_proxy(path: &str, instance: &str, port: &str) {
                 }
             }
         });
-    }
+    };
+
+    if let Some(stderr) = child.stderr.take() {
+        std::thread::spawn(move || {
+            let reader = BufReader::new(stderr);
+            for line in reader.lines() {
+                match line {
+                    Ok(l) => eprintln!("stderr: {}", l.yellow()),
+                    Err(e) => eprintln!("error reading stderr: {}", e.red()),
+                }
+            }
+        });
+    };
 
     child.wait_with_output().expect("proxy should have run");
 }
