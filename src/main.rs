@@ -1,5 +1,8 @@
+use demand::Input;
+use std::error::Error;
 use std::io::BufRead;
 use std::io::BufReader;
+use std::io::Result;
 use std::process::Command;
 use std::process::Stdio;
 
@@ -7,9 +10,27 @@ use owo_colors::OwoColorize;
 
 fn main() {
     let path = "/Users/nasir/cloud-sql-proxy";
-    let instance = "badg-r:us-central1:staging";
     let port = "9000";
-    start_proxy(path, instance, port);
+
+    let instance = prompt_connection().expect("Failed to prompt for instance");
+    start_proxy(path, &instance, port);
+}
+
+fn prompt_connection() -> Result<String> {
+    let instance_str_validator = |s: &str| {
+        if s.is_empty() {
+            return Err("instance name can not be empty");
+        }
+
+        Ok(())
+    };
+
+    let prompt = Input::new("Which gcloud sql instance would you like to connect to?")
+        .prompt("Instance: ")
+        .placeholder("project:location:instance")
+        .validation(instance_str_validator);
+
+    prompt.run()
 }
 
 fn start_proxy(path: &str, instance: &str, port: &str) {
