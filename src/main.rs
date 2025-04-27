@@ -10,13 +10,13 @@ use owo_colors::OwoColorize;
 
 fn main() {
     let path = "/Users/nasir/cloud-sql-proxy";
-    let port = "9000";
 
-    let instance = prompt_connection().expect("Failed to prompt for instance");
-    start_proxy(path, &instance, port);
+    let instance = prompt_instance().expect("Failed prompt for sql connection name");
+    let port = prompt_port().expect("Failed prompt for port number");
+    start_proxy(path, &instance, &port);
 }
 
-fn prompt_connection() -> Result<String> {
+fn prompt_instance() -> Result<String> {
     let instance_str_validator = |s: &str| {
         if s.is_empty() {
             return Err("instance name can not be empty");
@@ -29,6 +29,24 @@ fn prompt_connection() -> Result<String> {
         .prompt("Instance: ")
         .placeholder("project:location:instance")
         .validation(instance_str_validator);
+
+    prompt.run()
+}
+
+fn prompt_port() -> Result<String> {
+    let port_validator = |s: &str| {
+        if s.is_empty() {
+            return Err("port can not be empty!");
+        }
+        Ok(())
+    };
+
+    let suggested_ports = vec!["5432", "9000"];
+    let prompt = Input::new("Which port would you like for the sql proxy to use?")
+        .prompt("Port #: ")
+        .placeholder("5432")
+        .suggestions(&suggested_ports)
+        .validation(port_validator);
 
     prompt.run()
 }
