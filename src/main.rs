@@ -95,7 +95,7 @@ fn start_proxy(path: &str, instance: &str, port: &str) {
             for line in reader.lines() {
                 match line {
                     Ok(l) => println!("info: {}", l.green()),
-                    Err(e) => eprintln!("error: {}", e.red()),
+                    Err(e) => eprintln!("error reading stdout: {}", e.red()),
                 }
             }
         });
