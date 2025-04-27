@@ -1,5 +1,7 @@
+use config::Config;
 use demand::Input;
-use std::error::Error;
+use serde::Deserialize;
+use serde::Serialize;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Result;
@@ -8,15 +10,37 @@ use std::process::Stdio;
 
 use owo_colors::OwoColorize;
 
-fn main() {
-    let path = "/Users/nasir/cloud-sql-proxy";
-
-    let instance = prompt_instance().expect("Failed prompt for sql connection name");
-    let port = prompt_port().expect("Failed prompt for port number");
-    start_proxy(path, &instance, &port);
+#[derive(Serialize, Deserialize, Debug)]
+struct ConnectionConfig {
+    instance: String,
+    port: String,
 }
 
-fn prompt_instance() -> Result<String> {
+#[derive(Serialize, Deserialize, Debug)]
+struct StartProxConfig {
+    proxy_exec_path: String,
+    defaults: Option<Vec<ConnectionConfig>>,
+}
+
+fn main() {
+    let config_path = "config.yml";
+
+    let settings = Config::builder()
+        .add_source(config::File::with_name(config_path))
+        .build()
+        .unwrap()
+        .try_deserialize::<StartProxConfig>()
+        .unwrap();
+
+    println!("proxy exec path: {:?}", settings);
+
+    let instance = prompt_instance(settings.defaults.unwrap_or_default())
+        .expect("Failed prompt for sql connection name");
+    let port = prompt_port().expect("Failed prompt for port number");
+    start_proxy(&settings.proxy_exec_path, &instance, &port);
+}
+
+fn prompt_instance(default_options: Vec<ConnectionConfig>) -> Result<String> {
     let instance_str_validator = |s: &str| {
         if s.is_empty() {
             return Err("instance name can not be empty");
@@ -25,9 +49,15 @@ fn prompt_instance() -> Result<String> {
         Ok(())
     };
 
+    let completions: Vec<&str> = default_options
+        .iter()
+        .map(|config| config.instance.as_str())
+        .collect();
+
     let prompt = Input::new("Which gcloud sql instance would you like to connect to?")
         .prompt("Instance: ")
         .placeholder("project:location:instance")
+        .suggestions(&completions)
         .validation(instance_str_validator);
 
     prompt.run()
