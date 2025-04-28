@@ -70,8 +70,22 @@ fn load_config() -> Result<StartProxConfig, MyConfigError> {
 
     let settings: Config = match config {
         Ok(c) => c,
-        Err(e) => {
-            eprintln!("Failed to parse config: {}", e);
+        Err(ConfigError::Foreign(e)) => {
+            if let Some(io_error) = e.downcast_ref::<std::io::Error>() {
+                if io_error.kind() == std::io::ErrorKind::NotFound {
+                    eprintln!(
+                        "{}",
+                        format!("Could not find config file: {}", config_path).red()
+                    );
+                    exit(1);
+                }
+            }
+
+            eprintln!("{}", format!("io_error has occured: {}", e).red());
+            exit(1)
+        }
+        Err(_) => {
+            eprintln!("other error");
             exit(1);
         }
     };
