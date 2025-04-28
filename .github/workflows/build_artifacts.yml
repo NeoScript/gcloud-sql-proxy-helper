@@ -56,21 +56,21 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: target/x86_64-unknown-linux-gnu/release/startprox
-          asset_name: startprox-x86_64-linux.tar.gz
-          asset_content_type: application/gzip
+          asset_name: startprox-x86_64-linux
+          asset_content_type: application/octet-stream
 
       - name: Upload AArch64 Linux binary
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: target/aarch64-unknown-linux-gnu/release/startprox
-          asset_name: startprox-aarch64-linux.tar.gz
-          asset_content_type: application/gzip
+          asset_name: startprox-aarch64-linux
+          asset_content_type: application/octet-stream
 
       - name: Upload AArch64 macOS binary
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: target/aarch64-apple-darwin/release/startprox
-          asset_name: startprox-aarch64-macos.zip
-          asset_content_type: application/gzip
+          asset_name: startprox-aarch64-macos
+          asset_content_type: application/octet-stream
