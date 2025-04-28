@@ -2,9 +2,10 @@
 name = "startprox"
 version = "0.1.0"
 edition = "2024"
+authors = ["NeoScript"]
 
 [dependencies]
+cliclack = "0.3.6"
 config = { version = "0.15.11", features = ["yaml"] }
-demand = "1.6.5"
 owo-colors = "4.2.0"
 serde = { version = "1.0.219", features = ["derive"] }

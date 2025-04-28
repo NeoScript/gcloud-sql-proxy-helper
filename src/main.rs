@@ -1,16 +1,17 @@
-use config::Config;
-use demand::Input;
+use cliclack::input;
+use cliclack::select;
+use config::{Config, ConfigError};
 use serde::Deserialize;
 use serde::Serialize;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::io::Result;
 use std::process::Command;
 use std::process::Stdio;
+use std::process::exit;
 
 use owo_colors::OwoColorize;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 struct ConnectionConfig {
     instance: String,
     port: String,
@@ -19,66 +20,90 @@ struct ConnectionConfig {
 #[derive(Serialize, Deserialize, Debug)]
 struct StartProxConfig {
     proxy_exec_path: String,
-    defaults: Option<Vec<ConnectionConfig>>,
+    defaults: Vec<ConnectionConfig>,
 }
 
-fn main() {
-    let config_path = "config.yml";
-
-    let settings = Config::builder()
-        .add_source(config::File::with_name(config_path))
-        .build()
-        .unwrap()
-        .try_deserialize::<StartProxConfig>()
-        .unwrap();
-
-    println!("proxy exec path: {:?}", settings);
-
-    let instance = prompt_instance(settings.defaults.unwrap_or_default())
-        .expect("Failed prompt for sql connection name");
-    let port = prompt_port().expect("Failed prompt for port number");
-    start_proxy(&settings.proxy_exec_path, &instance, &port);
+#[derive(Debug)]
+enum MyConfigError {
+    FailedToCreateFile,
+    ConfigFileNotFound,
+    HomeDirectoryNotFound,
+    ParseConfigError(ConfigError),
 }
 
-fn prompt_instance(default_options: Vec<ConnectionConfig>) -> Result<String> {
-    let instance_str_validator = |s: &str| {
-        if s.is_empty() {
-            return Err("instance name can not be empty");
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = match load_config() {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("load_config error: {:?}", e);
+            exit(1);
         }
+    };
+    println!("proxy exec path: {}", &config.proxy_exec_path);
 
-        Ok(())
+    let instance = prompt_instance(config.defaults).expect("should receive user input");
+    let port = prompt_port(&instance.port).expect("should receive user input");
+    // start_proxy(&settings.proxy_exec_path, &instance, &port);
+    Ok(())
+}
+
+fn load_config() -> Result<StartProxConfig, MyConfigError> {
+    // Determine home path
+
+    let home: String = match std::env::var("HOME") {
+        Ok(home_path) => home_path,
+        Err(std::env::VarError::NotPresent) => {
+            eprintln!("{}", "Could not find HOME env var".red());
+            exit(1);
+        }
+        Err(_) => {
+            eprintln!("{}", "Failed to load $HOME".red());
+            exit(1);
+        }
     };
 
-    let completions: Vec<&str> = default_options
+    // Now check for config file
+    let config_path = format!("{home}/.config/startprox/config.yml");
+    let config = Config::builder()
+        .add_source(config::File::with_name(&config_path))
+        .build();
+
+    let settings: Config = match config {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Failed to parse config: {}", e);
+            exit(1);
+        }
+    };
+
+    match settings.try_deserialize::<StartProxConfig>() {
+        Ok(settings) => Ok(settings),
+        Err(e) => Err(MyConfigError::ParseConfigError(e)),
+    }
+}
+
+fn prompt_instance(default_options: Vec<ConnectionConfig>) -> std::io::Result<ConnectionConfig> {
+    let options: Vec<(ConnectionConfig, &str, &str)> = default_options
         .iter()
-        .map(|config| config.instance.as_str())
+        .map(|c| (c.clone(), c.instance.as_str(), c.instance.as_str()))
         .collect();
 
-    let prompt = Input::new("Which gcloud sql instance would you like to connect to?")
-        .prompt("Instance: ")
-        .placeholder("project:location:instance")
-        .suggestions(&completions)
-        .validation(instance_str_validator);
-
-    prompt.run()
+    select("Select cloudsql instance:")
+        .items(&options)
+        .interact()
 }
 
-fn prompt_port() -> Result<String> {
-    let port_validator = |s: &str| {
-        if s.is_empty() {
-            return Err("port can not be empty!");
-        }
-        Ok(())
-    };
-
-    let suggested_ports = vec!["5432", "9000"];
-    let prompt = Input::new("Which port would you like for the sql proxy to use?")
-        .prompt("Port #: ")
-        .placeholder("5432")
-        .suggestions(&suggested_ports)
-        .validation(port_validator);
-
-    prompt.run()
+fn prompt_port(default_port: &str) -> std::io::Result<String> {
+    input("Which port would you like to connect on?")
+        .default_input(default_port)
+        .validate(|input: &String| {
+            if input.is_empty() {
+                Err("Port cannot be empty")
+            } else {
+                Ok(())
+            }
+        })
+        .interact()
 }
 
 fn start_proxy(path: &str, instance: &str, port: &str) {
