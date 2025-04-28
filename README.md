@@ -4,20 +4,22 @@ This is just a simple utility that can help start `cloud-sql-proxy` to connect t
 on google cloud platform. It will allow users to configure a list of instances to connect to
 and allow users to connect to a default port value.
 
-## steps to complete
+## Installation
 
-first we want to check to see if a config exists
-if it does load it
+Go to the latest releases, and download the version for your OS and CPU architecture.
+You may need to add executable permissions:
 
-if it does not then ask user if they want to create an empty one
-go to $HOME/.config -- screw windows for now
-then create folder called startprox
-and a file inside called config.yml
-set it with defaults for the exec path and a fake instance
-print the resulting file path to the user and shutdown program
+```
+chmod +x startprox-<rest_of_file_name>
+```
 
-if we are loaded in with config:
-then show list of instances and have user select
-if port is set then ask user for port selection, default to their given port
+Then just run the program like usual.
 
-start proxy and show output
+```
+./startprox
+```
+
+StartProx will look for a config in your `$HOME/.config/startprox/` folder.
+The application will also prompt you to create a default `config.yml` if not found.
+Make sure you edit it to include the information about your own cloudsql instances
+or you will not be able to connect.
