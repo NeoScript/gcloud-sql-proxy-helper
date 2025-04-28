@@ -1,3 +1,4 @@
+use cliclack::confirm;
 use cliclack::input;
 use cliclack::select;
 use config::{Config, ConfigError};
@@ -77,7 +78,7 @@ fn load_config() -> Result<StartProxConfig, MyConfigError> {
                         "{}",
                         format!("Could not find config file: {}", config_path).red()
                     );
-                    exit(1);
+                    prompt_create_default_config(&config_path);
                 }
             }
 
@@ -94,6 +95,40 @@ fn load_config() -> Result<StartProxConfig, MyConfigError> {
         Ok(settings) => Ok(settings),
         Err(e) => Err(MyConfigError::ParseConfigError(e)),
     }
+}
+
+fn prompt_create_default_config(path: &str) {
+    if confirm("Would you like to create a default config?")
+        .initial_value(true)
+        .interact()
+        .unwrap()
+    {
+        create_config_file(path);
+    }
+}
+
+fn create_config_file(path: &str) {
+    let config_path = std::path::Path::new(path);
+    let parent = config_path.parent().unwrap();
+
+    std::fs::create_dir_all(parent).unwrap();
+    std::fs::write(
+        config_path,
+        "
+proxy_exec_path: //put path to cloud-sql-proxy here
+
+defaults:
+ - instance: {project_id}:{region_id}:{instance_id}
+   port: 5432 //you can set a default port to connect to
+",
+    )
+    .unwrap();
+
+    println!(
+        "{}",
+        format!("Created default config file at: {path}").green()
+    );
+    exit(1);
 }
 
 fn prompt_instance(default_options: Vec<ConnectionConfig>) -> std::io::Result<ConnectionConfig> {
