@@ -9,3 +9,10 @@ cliclack = "0.3.6"
 config = { version = "0.15.11", features = ["yaml"] }
 owo-colors = "4.2.0"
 serde = { version = "1.0.219", features = ["derive"] }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+panic = "abort"
+opt-level = "z"
+strip = "symbols"
