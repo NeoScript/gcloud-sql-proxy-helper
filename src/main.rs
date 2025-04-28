@@ -41,9 +41,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     println!("proxy exec path: {}", &config.proxy_exec_path);
 
-    let instance = prompt_instance(config.defaults).expect("should receive user input");
-    let port = prompt_port(&instance.port).expect("should receive user input");
-    // start_proxy(&settings.proxy_exec_path, &instance, &port);
+    let selected_config = prompt_instance(config.defaults).expect("should receive user input");
+    let port = prompt_port(&selected_config.port).expect("should receive user input");
+    start_proxy(&config.proxy_exec_path, &selected_config.instance, &port);
     Ok(())
 }
 
@@ -85,11 +85,12 @@ fn load_config() -> Result<StartProxConfig, MyConfigError> {
 fn prompt_instance(default_options: Vec<ConnectionConfig>) -> std::io::Result<ConnectionConfig> {
     let options: Vec<(ConnectionConfig, &str, &str)> = default_options
         .iter()
-        .map(|c| (c.clone(), c.instance.as_str(), c.instance.as_str()))
+        .map(|c| (c.clone(), c.instance.as_str(), ""))
         .collect();
 
-    select("Select cloudsql instance:")
+    select("Select instance ↑/↓: (type to filter)")
         .items(&options)
+        .filter_mode()
         .interact()
 }
 
