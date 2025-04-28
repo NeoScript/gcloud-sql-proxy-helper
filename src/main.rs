@@ -40,7 +40,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             exit(1);
         }
     };
-    println!("proxy exec path: {}", &config.proxy_exec_path);
 
     let selected_config = prompt_instance(config.defaults).expect("should receive user input");
     let port = prompt_port(&selected_config.port).expect("should receive user input");
@@ -85,14 +84,20 @@ fn load_config() -> Result<StartProxConfig, MyConfigError> {
             eprintln!("{}", format!("io_error has occured: {}", e).red());
             exit(1)
         }
-        Err(_) => {
-            eprintln!("other error");
+        Err(e) => {
+            eprintln!("Config Error: {}", e);
             exit(1);
         }
     };
 
     match settings.try_deserialize::<StartProxConfig>() {
-        Ok(settings) => Ok(settings),
+        Ok(settings) => {
+            println!(
+                "{}",
+                format!("Successfully loaded config from {}", config_path).green()
+            );
+            Ok(settings)
+        }
         Err(e) => Err(MyConfigError::ParseConfigError(e)),
     }
 }
@@ -115,11 +120,11 @@ fn create_config_file(path: &str) {
     std::fs::write(
         config_path,
         "
-proxy_exec_path: //put path to cloud-sql-proxy here
+proxy_exec_path: cloud-sql-proxy # put path to cloud-sql-proxy here
 
 defaults:
- - instance: {project_id}:{region_id}:{instance_id}
-   port: 5432 //you can set a default port to connect to
+ - instance: project_id:region_id:instance_id
+   port: 5432 # you can set a default port to connect to
 ",
     )
     .unwrap();
