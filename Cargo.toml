@@ -5,10 +5,10 @@ edition = "2024"
 authors = ["NeoScript"]
 
 [dependencies]
-cliclack = "0.3.6"
-config = { version = "0.15.11", features = ["yaml"] }
-owo-colors = "4.2.0"
-serde = { version = "1.0.219", features = ["derive"] }
+cliclack = { version = "0.3.6", default-features = false }
+config = { version = "0.15.11", features = ["yaml"], default-features = false }
+owo-colors = { version = "4.2.0", default-features = false }
+serde = { version = "1.0.219", features = ["derive"], default-features = false }
 
 [profile.release]
 codegen-units = 1
